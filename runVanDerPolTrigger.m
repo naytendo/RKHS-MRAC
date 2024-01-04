@@ -2,7 +2,7 @@ Ri = 2*sqrt(2)-0.3;
 Ro = 2*sqrt(2)+0.3;
 delta = 0;
 triggered = 1;
-del = 0.9;
+del = 0;
 
 A=[0 1;-1 -1]; B=[0;1];
 Ar=A; Br=B;
@@ -25,7 +25,7 @@ Q = eye(2);
 
 P = lyap(A,Q);
 
-mu = 2;
+mu = 0.01;
 
 
 
@@ -45,7 +45,7 @@ Newt = 1;
 model = 'NewtTriggerVanDerPol';
 open(model)
 trackError0 = abs(x0-xr0);
-maxN = 500;
+maxN = 70;
 
 ssErrorNB = [];
 
@@ -75,13 +75,13 @@ fNon = [];
 Ns = [];
 condK = [];
 condN =[];
-C = 0.6;
+C = 0.8;
 
 Omega = omegaCover2(Ri,Ro,h);
 %%
 [norm_fs,condT,Ntest] = getVDP_HNorm(type,par,scale,mu,Ri,Ro);
 
-norm_f = max(norm_fs(condT < 1e16))
+norm_f = max(norm_fs(condT < 1e12))
 format short g;
 condT
 tol = C*norm(x0-xr0);
@@ -89,7 +89,7 @@ R = norm_f+0.1;
 triggerTime = 0;
 
 %%
-while norm(trackError0) > 1e-7 && N0 <= maxN && triggerTime < runTimes
+while norm(trackError0) > 1e-7 && N0 < maxN && triggerTime < runTimes
     set_param(csNew,"StartTime",num2str(triggerTime))
     
     
@@ -98,7 +98,7 @@ while norm(trackError0) > 1e-7 && N0 <= maxN && triggerTime < runTimes
     N = size(gCenters,1)
     Ns = [Ns;N];
     
-    if size(gCenters,1) > N0
+    if N > N0
         
         N = size(gCenters,1);
         lambda0 = [lambda0;zeros(N-N0,1)];
@@ -184,6 +184,9 @@ while norm(trackError0) > 1e-7 && N0 <= maxN && triggerTime < runTimes
         triggerTimes = [triggerTimes;triggerTime];
         
     end
+    if N0 == maxN
+        triggered = 0;
+    end
 end
 triggered = 0;
 if triggerTime < runTimes
@@ -227,10 +230,9 @@ fSS = figure();
 
 
 
-
 subplot(3,1,1:2)
 hold on
-trackingErrorNorm = sqrt(sum(trackingError.^2,2));
+% trackingErrorNorm = sqrt(sum(trackingError.^2,2));
 semilogy(totTime,trackingErrorNorm,'linewidth',1.5);
 
 
@@ -238,7 +240,7 @@ semilogy(totTime,trackingErrorNorm,'linewidth',1.5);
 
 if ~isempty(triggerTimes)
     tm = [totTime(2);triggerTimes];
-    line([tm(1),runTimes],[Epsilons(end), Epsilons(end)],'linestyle','--','linewidth',2.5,'color','b')
+    line([tm(1),runTimes],[Epsilons(end), Epsilons(end)],'linestyle','--','linewidth',2.5,'color',[0.9290 0.6940 0.1250])
     l = semilogy(triggerTimes(1:end),triggerErrors(1:end),'o','markerSize',5);
     l.MarkerFaceColor = l.Color;
     line([tm(end),runTimes],[Epsilons(end), Epsilons(end)],'linestyle','-.','linewidth',1.5,'color','k')
@@ -254,13 +256,14 @@ set(gca,'fontsize',10)
 ylabel('$\frac{\|\tilde{x}_N\|}{\|B^TP\|}$','interpreter','latex','fontsize',20)
 
 legend('tracking error','ultimate error bound','trigger events at $t_m$','$\sup_{\xi \in \Omega_{m}} P_{H_{N}}(\xi)$','interpreter','latex','fontsize',20)
-
+grid on
 subplot(3,1,3)
 plot([tm;runTimes],[Ns;Ns(end)],'linewidth',1.5)
 xlabel('time (s)','interpreter','latex','fontsize',20)
 ylabel('$N$','interpreter','latex','fontsize',20)
 ylim([10 500])
 set(gca,'Yscale','log')
+grid on
 % error = simresult.trackingErrorNB.Data;
 % 
 % 
@@ -299,7 +302,7 @@ figure();
 hold on
 plot(gCenters(:,1),gCenters(:,2),'ko')
 plot(xTot(:,1),xTot(:,2),'b-.','linewidth',2)
-
+grid on
 theta = linspace(0,360,100);
 plot(rmax*sind(theta),rmax*cosd(theta),'color',[0.4940 0.1840 0.5560],'linewidth',5)
 xlabel('$x_1$','interpreter','latex','fontsize',20)
